@@ -2,11 +2,13 @@ import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Platform, Modal, TextInput, Animated, Alert, Image } from 'react-native';
 import CrossPressable from '@/components/CrossPressable';
 import { Colors, Fonts } from '@/constants/theme';
+import { useThemeTokens } from '@/context/Theme';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { backupToJSON, restoreFromJSON } from '@/db/sqlite/database';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useSupabaseAuthStore } from '@/store/useSupabaseAuthStore';
 import { usePreferenceStore } from '@/store/usePreferenceStore';
 import Svg, { Defs, LinearGradient, Stop, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +21,11 @@ export default function ProfileScreen() {
   const fade = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const { logout } = useAuthStore();
-  const { profile, language, theme, saving, setProfile, setLanguage, setTheme, load } = usePreferenceStore();
+  const { signOut } = useSupabaseAuthStore();
+  const { profile, language, theme, saving, setProfile, setLanguage, setTheme, setThemeBg, load } = usePreferenceStore();
   const { width } = useWindowDimensions();
   const contentW = Math.min(361, width - 32);
+  const themeTokens = useThemeTokens();
   useEffect(() => { load(); }, []);
   useEffect(() => { Animated.timing(fade, { toValue: showEdit || showLang || showTheme ? 1 : 0, duration: 250, useNativeDriver: true }).start(); }, [showEdit, showLang, showTheme]);
   let tempEmail: string | undefined;
@@ -53,11 +57,11 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: themeTokens.bg }]} contentContainerStyle={styles.content}>
       <View style={[styles.headingRow, { width: contentW }]}>
         <Text style={styles.heading}>个人信息</Text>
       </View>
-      <View style={[styles.profileCard, { width: contentW }]}> 
+      <View style={[styles.profileCard, { width: contentW, backgroundColor: themeTokens.card } ]}> 
         {String(profile.avatarUri || '').startsWith('emoji:') ? (
           <View style={styles.avatarWrap}> 
             <View style={styles.avatarCircle}><Text style={styles.avatarEmoji}>{String(profile.avatarUri).replace('emoji:','')}</Text></View>
@@ -76,10 +80,10 @@ export default function ProfileScreen() {
             <Ionicons name="person-outline" size={32} color="#fff" style={styles.avatarIcon} />
           </View>
         )}
-        <Text style={styles.profileName}>每日记账用户</Text>
-        <Text style={styles.profileEmail}>user@dailyflow.com</Text>
+        <Text style={[styles.profileName, { color: themeTokens.text }]}>每日记账用户</Text>
+        <Text style={[styles.profileEmail, { color: themeTokens.mutedText }]}>user@dailyflow.com</Text>
       </View>
-      <View style={[styles.listCard, { width: contentW }]}> 
+      <View style={[styles.listCard, { width: contentW, backgroundColor: themeTokens.card } ]}> 
         <CrossPressable style={styles.listRow} onPress={() => setShowEdit(true)}> 
           <View style={[styles.leftIcon, { backgroundColor: '#007AFF1A' }]}>
             <Ionicons name="create-outline" size={20} color="#007AFF" />
@@ -90,7 +94,7 @@ export default function ProfileScreen() {
           </View>
           <IconSymbol name="chevron.right" size={20} color="#B6BDC7" />
         </CrossPressable>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: themeTokens.divider }]} />
         <CrossPressable style={styles.listRow} onPress={() => setShowLang(true)}> 
           <View style={[styles.leftIcon, { backgroundColor: '#6A72821A' }]}>
             <Ionicons name="settings-outline" size={20} color="#6A7282" />
@@ -101,7 +105,7 @@ export default function ProfileScreen() {
           </View>
           <IconSymbol name="chevron.right" size={20} color="#B6BDC7" />
         </CrossPressable>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: themeTokens.divider }]} />
         <CrossPressable style={styles.listRow} onPress={() => setShowTheme(true)}> 
           <View style={[styles.leftIcon, { backgroundColor: '#FFB8001A' }]}>
             <Ionicons name="color-palette-outline" size={20} color="#FFB800" />
@@ -112,7 +116,7 @@ export default function ProfileScreen() {
           </View>
           <IconSymbol name="chevron.right" size={20} color="#B6BDC7" />
         </CrossPressable>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: themeTokens.divider }]} />
         <View style={styles.listRow}> 
           <View style={[styles.leftIcon, { backgroundColor: '#FF3B301A' }]}>
             <Ionicons name="lock-closed-outline" size={20} color="#FF3B30" />
@@ -124,13 +128,13 @@ export default function ProfileScreen() {
           <IconSymbol name="chevron.right" size={20} color="#B6BDC7" />
         </View>
       </View>
-      <CrossPressable style={[styles.logoutBtn, { width: contentW }]} onPress={async () => { await logout(); router.replace('/(auth)/login'); }}>
+      <CrossPressable style={[styles.logoutBtn, { width: contentW }]} onPress={async () => { await signOut(); await logout(); router.replace('/(auth)/login'); }}>
         <Text style={styles.logoutText}>↳ 退出登录</Text>
       </CrossPressable>
 
       <Modal visible={showEdit} transparent animationType="none" onRequestClose={() => setShowEdit(false)}>
         <Animated.View style={[styles.modalOverlay, { opacity: fade }]}>
-          <View style={[styles.modalCard, { width: Math.min(361, width - 32) }]}>
+          <View style={[styles.modalCard, { width: Math.min(361, width - 32), backgroundColor: themeTokens.card }]}>
             <Text style={styles.modalTitle}>编辑资料</Text>
             <View style={styles.avatarCropWrap}>
               <CrossPressable onPress={randomAvatar}>
@@ -169,7 +173,7 @@ export default function ProfileScreen() {
 
       <Modal visible={showLang} transparent animationType="none" onRequestClose={() => setShowLang(false)}>
         <Animated.View style={[styles.modalOverlay, { opacity: fade }]}>
-          <View style={[styles.modalCard, { width: Math.min(361, width - 32) }]}>
+          <View style={[styles.modalCard, { width: Math.min(361, width - 32), backgroundColor: themeTokens.card }]}>
             <Text style={styles.modalTitle}>系统语言</Text>
             <View style={styles.pillRow}>
               {(['zh','en','ja'] as const).map(l => (
@@ -188,7 +192,7 @@ export default function ProfileScreen() {
 
       <Modal visible={showTheme} transparent animationType="none" onRequestClose={() => setShowTheme(false)}>
         <Animated.View style={[styles.modalOverlay, { opacity: fade }]}>
-          <View style={[styles.modalCard, { width: Math.min(361, width - 32) }]}>
+          <View style={[styles.modalCard, { width: Math.min(361, width - 32), backgroundColor: themeTokens.card }]}>
             <Text style={styles.modalTitle}>主题模式</Text>
             <View style={styles.pillRow}>
               {(['light','dark','system'] as const).map(t => (
@@ -197,6 +201,21 @@ export default function ProfileScreen() {
                 </CrossPressable>
               ))}
             </View>
+            <View style={[styles.preview, { backgroundColor: themeTokens.bg }] }>
+              <View style={[styles.previewCard, { backgroundColor: themeTokens.card }]} />
+              <Text style={[styles.previewText, { color: themeTokens.text }]}>示例文本</Text>
+            </View>
+            <View style={styles.pillRow}>
+              {[ '#FFFFFF','#F5F5F5','#FAFAFA','#151718','#1A1F25' ].map(hex => (
+                <CrossPressable key={hex} style={[styles.colorChip, { backgroundColor: hex }]} onPress={async () => { await setThemeBg(hex); Alert.alert('成功','背景颜色已应用'); }} />
+              ))}
+            </View>
+            <TextInput style={styles.input} placeholder="自定义背景色 #RRGGBB" placeholderTextColor="#9CA3AF" onSubmitEditing={async (e) => {
+              const v = e.nativeEvent.text.trim();
+              const ok = /^#([0-9A-Fa-f]{6})$/.test(v);
+              if (!ok) return Alert.alert('提示','请输入合法的十六进制颜色，如 #1A1F25');
+              await setThemeBg(v); Alert.alert('成功','背景颜色已应用');
+            }} />
             <View style={styles.modalActions}>
               <CrossPressable style={styles.btnOutline} onPress={() => setShowTheme(false)}><Text style={styles.btnOutlineText}>关闭</Text></CrossPressable>
             </View>
@@ -248,4 +267,8 @@ const styles = StyleSheet.create({
   cropImage: { width: 120, height: 120 },
   avatarCircleLg: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   avatarEmojiLg: { fontSize: 48 },
+  preview: { marginTop: 8, borderRadius: 12, padding: 10 },
+  previewCard: { width: 60, height: 40, borderRadius: 8, marginBottom: 6 },
+  previewText: { fontSize: 12 },
+  colorChip: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb' },
 });

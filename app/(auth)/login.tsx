@@ -5,11 +5,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, useWindowDimensions, View, Easing } from 'react-native';
 import CrossPressable from '@/components/CrossPressable';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useSupabaseAuthStore } from '@/store/useSupabaseAuthStore';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { signIn, loading, error } = useSupabaseAuthStore();
   const fade = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconRotate = useRef(new Animated.Value(1)).current; // 1 -> 0
@@ -58,11 +58,15 @@ export default function LoginScreen() {
     }
   }, [reduceMotion]);
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agree, setAgree] = useState(false);
 
-  const canLogin = username.length > 0 && password.length > 0 && agree;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const passwordValid = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password);
+  const emailErrorMsg = !emailValid && email.length > 0 ? '邮箱格式不正确，如 name@example.com' : undefined;
+  const passwordErrorMsg = !passwordValid && password.length > 0 ? '密码需至少8位，且包含字母和数字' : undefined;
+  const canLogin = email.length > 0 && password.length > 0 && agree && emailValid && passwordValid;
 
   return (
     <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -86,23 +90,36 @@ export default function LoginScreen() {
         <View style={[styles.inputGroup, { width: '100%' }]}> 
           <View style={styles.groupRow}> 
             <Ionicons name="person-outline" size={20} color="#9CA3AF" />
-            <TextInput style={styles.input} placeholder="用户名" placeholderTextColor="#9CA3AF" value={username} onChangeText={setUsername} autoComplete="off" autoCapitalize="none" autoCorrect={false} />
+            <TextInput style={styles.input} placeholder="邮箱" placeholderTextColor="#9CA3AF" value={email} onChangeText={setEmail} autoComplete="email" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
           </View>
+          {emailErrorMsg ? (<Text style={styles.inputError}>{emailErrorMsg}</Text>) : null}
           <View style={styles.divider} />
           <View style={styles.groupRow}> 
             <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
             <TextInput style={styles.input} placeholder="密码" placeholderTextColor="#9CA3AF" secureTextEntry value={password} onChangeText={setPassword} autoComplete="off" autoCapitalize="none" autoCorrect={false} />
           </View>
+          {passwordErrorMsg ? (<Text style={styles.inputError}>{passwordErrorMsg}</Text>) : null}
         </View>
-        <CrossPressable style={[styles.loginBtn, { width: '100%' }, !canLogin && styles.loginDisabled]} disabled={!canLogin} onPress={async () => { await login(username); router.replace('/'); }}>
-          <Text style={styles.loginText}>登录</Text>
+        <CrossPressable style={[styles.loginBtn, { width: '100%' }, (!canLogin || loading) && styles.loginDisabled]} disabled={!canLogin || loading} onPress={async () => {
+          console.log('[ui/login] request', { email, password_len: password.length });
+          try {
+            const res = await signIn(email, password);
+            console.log('[ui/login] result', res);
+            if (res.ok) router.replace('/');
+            if (!res.ok) console.error('[ui/login] error', { message: res.error });
+          } catch (e: any) {
+            console.error('[ui/login] exception', { message: e?.message, stack: e?.stack });
+          }
+        }}>
+          <Text style={styles.loginText}>{loading ? '登录中...' : '登录'}</Text>
         </CrossPressable>
+        {error ? (<View style={styles.orRow}><Text style={[styles.orText, { color: '#FF3B30' }]}>{error}</Text></View>) : null}
         <View style={styles.orRow}> 
           <View style={styles.line} />
           <Text style={styles.orText}>或</Text>
           <View style={styles.line} />
         </View>
-        <CrossPressable style={[agree ? styles.appleBtnActive : styles.appleBtn, { width: '100%' }]} disabled={!agree} onPress={async () => { await login('apple_user'); router.replace('/'); }}>
+        <CrossPressable style={[agree ? styles.appleBtnActive : styles.appleBtn, { width: '100%' }]} disabled={!agree} onPress={() => {}}>
           <Ionicons name="logo-apple" size={16} color="#fff" />
           <Text style={styles.appleText}>使用 Apple ID 授权登录</Text>
         </CrossPressable>
@@ -160,4 +177,5 @@ const styles = StyleSheet.create({
   link: { color: '#007AFF', fontSize: 14 },
   footerNote: { marginTop: 24, width: 345, alignItems: 'center' },
   footerText: { color: '#6A7282', fontSize: 12 },
+  inputError: { color: '#FF3B30', fontSize: 12, paddingHorizontal: 16, alignSelf: 'flex-start' },
 });

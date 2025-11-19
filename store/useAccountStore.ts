@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Account } from '@/db/sqlite/schema';
-import { listAccounts, upsertAccount, deleteAccount } from '@/db/sqlite/database';
+import { listAccounts, createAccount, deleteAccount } from '@/supabase/accounts';
 
 type State = {
   accounts: Account[];
@@ -22,9 +22,9 @@ export const useAccountStore = create<State & Actions>((set, get) => ({
     set({ accounts: rows, loading: false });
   },
   add: async (name, balance = 0, icon) => {
-    const id = await upsertAccount({ name, balance, icon });
+    const a = await createAccount({ name, balance, icon });
     await get().load();
-    return id;
+    return a.id;
   },
   remove: async id => {
     await deleteAccount(id);

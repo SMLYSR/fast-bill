@@ -86,10 +86,12 @@ function LineChartCard({ maxW, period, setPeriod, kind, setKind, transactions }:
   const { data, labels } = buildSeriesWithLabels(period, kind, transactions);
   const total = data.reduce((s, p) => s + p.value, 0);
   const avg = data.length ? total / data.length : 0;
-  const chartW = Math.max(240, maxW - 48);
+  const chartW = Math.max(240, Math.floor(maxW - 48));
   const filtered = data.filter(p => p.value > 0);
   const dataForChart = filtered.length ? data : Array(labels.length).fill(0).map(() => ({ value: 0 }));
   const spacing = labels.length > 1 ? chartW / (labels.length - 1) : chartW;
+  const labelsForAxis = labels.map((l, i) => (data[i].value > 0 ? l : ''));
+  const { maxValue, noOfSections } = getYAxisScale(data);
   return (
     <View style={[styles.card, { width: maxW }] }>
       <View style={styles.lineHeader}>
@@ -119,7 +121,7 @@ function LineChartCard({ maxW, period, setPeriod, kind, setKind, transactions }:
           focusedDataPointRadius={4}
           color={filtered.length === 0 ? 'transparent' : chartColor}
           curved
-          yAxisTextStyle={{ color: '#999' }}
+          yAxisTextStyle={{ color: '#999', fontSize: 10 }}
           xAxisTextStyle={{ color: '#999' }}
           hideRules={false}
           rulesColor={'#eee'}
@@ -127,8 +129,12 @@ function LineChartCard({ maxW, period, setPeriod, kind, setKind, transactions }:
           width={chartW}
           height={216}
           initialSpacing={0}
+          endSpacing={0}
           spacing={spacing}
-          xAxisLabelTexts={labels}
+          xAxisLabelTexts={labelsForAxis}
+          yAxisLabelWidth={28}
+          maxValue={maxValue}
+          noOfSections={noOfSections}
           isAnimated={false}
         />
       </View>
@@ -217,6 +223,21 @@ function getXLabels(period: Period) {
   return ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 }
 
+function getYAxisScale(data: { value: number }[]) {
+  const max = Math.max(0, ...data.map(d => d.value));
+  if (max <= 0) return { maxValue: 10, noOfSections: 10 };
+  const pow = Math.pow(10, Math.floor(Math.log10(max)));
+  const base = pow;
+  const stepCandidates = [1, 2, 5, 10];
+  let step = base;
+  for (const s of stepCandidates) {
+    const candidate = s * base;
+    if (max / candidate <= 10) { step = candidate; break; }
+  }
+  const sections = Math.ceil(max / step);
+  return { maxValue: sections * step, noOfSections: Math.min(Math.max(sections, 4), 10) };
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5', paddingHorizontal: 16 },
   pageTitle: { fontSize: 20, fontWeight: '500', color: '#101828', textAlign: 'center', marginTop: 24, marginBottom: 16, fontFamily: Fonts.rounded },
@@ -248,7 +269,7 @@ const styles = StyleSheet.create({
   kindActive: { shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 4 },
   kindText: { color: '#fff', fontSize: 12 },
   kindTextActive: { fontWeight: '600' },
-  chartBox: { marginTop: 8, backgroundColor: '#fff', borderRadius: 12, padding: 12 },
+  chartBox: { marginTop: 8, backgroundColor: '#fff', borderRadius: 12, padding: 12, overflow: 'hidden' },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingTop: 12, height: 77 },
   sumCol: { },
   sumLabel: { color: '#6A7282', fontSize: 12 },

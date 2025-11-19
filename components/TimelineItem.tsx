@@ -1,25 +1,26 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import CrossPressable from '@/components/CrossPressable';
 import { TodayItem } from '@/constants/mock/today';
+import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Text, View } from 'react-native';
 
-export default function TimelineItem({ item }: { item: TodayItem }) {
+export default function TimelineItem({ item, onPress }: { item: TodayItem; onPress?: () => void }) {
   const color = item.type === 'income' ? '#34C759' : '#FF3B30';
   const circle = item.type === 'income' ? 'rgba(52,199,89,0.15)' : 'rgba(255,59,48,0.15)';
   return (
-    <View style={styles.row}>
-      <View style={[styles.leftCircle, { backgroundColor: circle }]}> 
+    <CrossPressable style={styles.row} onPress={onPress}>
+      <View style={[styles.leftCircle, { backgroundColor: circle }]}>
         <Text style={styles.emoji}>{item.icon || '📄'}</Text>
       </View>
-      <View style={styles.content}> 
-        <View style={styles.header}> 
-          <View style={styles.headerLeft}> 
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
             <Text style={styles.time}>{item.time}</Text>
             <Text style={styles.category}>{item.category}</Text>
           </View>
           <Text style={[styles.amount, { color }]}>{`${item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)} ¥`}</Text>
         </View>
         {(item.location || item.note) && (
-          <View style={styles.subRow}> 
+          <View style={styles.subRow}>
             {item.location ? (
               <View style={styles.lineRow}>
                 <Ionicons name="location-outline" size={14} color="#6A7282" />
@@ -35,7 +36,7 @@ export default function TimelineItem({ item }: { item: TodayItem }) {
           </View>
         )}
       </View>
-    </View>
+    </CrossPressable>
   );
 }
 

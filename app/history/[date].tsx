@@ -14,26 +14,7 @@ export default function HistoryScreen() {
   useEffect(() => { if (date) loadByDate(String(date)); }, [date]);
   const listRef = useRef<FlatList<Transaction>>(null);
   const [showTop, setShowTop] = useState(false);
-  function isoAt(dateISO: string, h: number, m: number) {
-    const base = new Date();
-    const y = Number(dateISO.slice(0, 4));
-    const mo = Number(dateISO.slice(5, 7)) - 1;
-    const d = Number(dateISO.slice(8, 10));
-    base.setFullYear(y, mo, d);
-    base.setHours(h, m, 0, 0);
-    return base.toISOString();
-  }
-  function mockForDate(dateISO: string): Transaction[] {
-    const aid = 'mock-account';
-    return [
-      { id: 'mock-1', type: 'expense', amount: 15.0, category: '早餐', account_id: aid, date: dateISO, location: '公司楼下', description: '', created_at: isoAt(dateISO, 8, 45) },
-      { id: 'mock-2', type: 'income', amount: 5000.0, category: '工资', account_id: aid, date: dateISO, location: '', description: '11月工资到账', created_at: isoAt(dateISO, 9, 30) },
-      { id: 'mock-3', type: 'expense', amount: 38.0, category: '午餐', account_id: aid, date: dateISO, location: '公司食堂', description: '', created_at: isoAt(dateISO, 12, 0) },
-      { id: 'mock-4', type: 'expense', amount: 28.0, category: '咖啡', account_id: aid, date: dateISO, location: '星巴克', description: '', created_at: isoAt(dateISO, 15, 20) },
-      { id: 'mock-5', type: 'expense', amount: 45.5, category: '晚餐', account_id: aid, date: dateISO, location: '海底捞火锅', description: '和朋友聚餐', created_at: isoAt(dateISO, 18, 30) },
-    ];
-  }
-  const source = transactions.length ? transactions : (date ? mockForDate(String(date)) : []);
+  const source = transactions;
   const income = sumBy(source.filter(t => t.type === 'income'), t => t.amount);
   const expense = sumBy(source.filter(t => t.type === 'expense'), t => t.amount);
   const fade = useRef(new Animated.Value(0)).current; // header

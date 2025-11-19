@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Fonts } from '@/constants/theme';
+import FitText from '@/components/FitText';
 
 export default function SummaryCard({ income, expense, titleLabel = '今日总收/支' }: { income: number; expense: number; titleLabel?: string }) {
   const net = income - expense;
@@ -13,17 +14,17 @@ export default function SummaryCard({ income, expense, titleLabel = '今日总�
       <View style={styles.rows}>
         <View style={styles.col}> 
           <Text style={[styles.label, { color: '#FFB800' }]}>总收支</Text>
-          <Text style={[styles.value, { color: '#FFB800' }]}>{`${net >= 0 ? '+' : ''}${net.toFixed(2)} ¥`}</Text>
+          <FitText text={`${net >= 0 ? '+' : ''}${net.toFixed(2)}\u00A0¥`} color={'#FFB800'} baseSize={18} weight={'600'} containerStyle={{ maxWidth: '90%' }} minScale={0.75} />
         </View>
         <View style={styles.divider} />
         <View style={styles.col}> 
           <Text style={[styles.label, { color: '#FF3B30' }]}>总支出</Text>
-          <Text style={[styles.value, { color: '#FF3B30' }]}>{`${expense.toFixed(2)} ¥`}</Text>
+          <FitText text={`${expense.toFixed(2)}\u00A0¥`} color={'#FF3B30'} baseSize={18} weight={'600'} containerStyle={{ maxWidth: '90%' }} minScale={0.75} />
         </View>
         <View style={styles.divider} />
         <View style={styles.col}> 
           <Text style={[styles.label, { color: '#34C759' }]}>总收入</Text>
-          <Text style={[styles.value, { color: '#34C759' }]}>{`${income.toFixed(2)} ¥`}</Text>
+          <FitText text={`${income.toFixed(2)}\u00A0¥`} color={'#34C759'} baseSize={18} weight={'600'} containerStyle={{ maxWidth: '90%' }} minScale={0.75} />
         </View>
       </View>
     </View>
@@ -34,10 +35,10 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 24, padding: 16, marginHorizontal: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, ...Platform.select({ web: { boxShadow: '0 12px 32px rgba(16,24,40,0.12)' } }) },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   headerIcon: { fontSize: 20 },
-  headerText: { marginLeft: 8, color: '#0A0A0A', fontFamily: Platform.select({ ios: Fonts.rounded, web: 'SF Pro Rounded, PingFang SC, Microsoft YaHei, sans-serif', default: undefined }) as any },
+  headerText: { marginLeft: 8, color: '#667085', fontFamily: Platform.select({ ios: Fonts.rounded, web: 'SF Pro Rounded, PingFang SC, Microsoft YaHei, sans-serif', default: undefined }) as any },
   rows: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   col: { flex: 1, alignItems: 'center', gap: 4 },
   label: { fontSize: 12, color: '#6A7282' },
-  value: { fontSize: 18, fontWeight: '600' },
+  value: { fontSize: 18, fontWeight: '600', textAlign: 'center', maxWidth: '90%' },
   divider: { width: 2, height: 48, backgroundColor: '#E5E7EB', borderRadius: 1 },
 });

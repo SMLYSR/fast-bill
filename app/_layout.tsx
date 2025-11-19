@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useSupabaseAuthStore } from '@/store/useSupabaseAuthStore';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -16,17 +17,20 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const { user, loading, hydrate } = useAuthStore();
+  const { session, loading: sLoading, hydrate: sHydrate } = useSupabaseAuthStore();
 
   useEffect(() => {
     hydrate();
+    sHydrate();
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || sLoading) return;
     const inAuthGroup = segments[0] === '(auth)';
-    if (!user && !inAuthGroup) router.replace('/(auth)/login');
-    if (user && inAuthGroup) router.replace('/');
-  }, [segments, user, loading]);
+    const authed = !!session || !!user;
+    if (!authed && !inAuthGroup) router.replace('/(auth)/login');
+    if (authed && inAuthGroup) router.replace('/');
+  }, [segments, user, loading, session, sLoading]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

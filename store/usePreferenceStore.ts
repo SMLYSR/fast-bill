@@ -9,32 +9,38 @@ type State = {
   profile: Profile;
   language: Language;
   theme: ThemeMode;
+  themeBg?: string;
   saving: boolean;
   load: () => Promise<void>;
   setProfile: (p: Profile) => Promise<void>;
   setLanguage: (l: Language) => Promise<void>;
   setTheme: (t: ThemeMode) => Promise<void>;
+  setThemeBg: (hex?: string) => Promise<void>;
 };
 
 const KEY_PROFILE = 'pref.profile';
 const KEY_LANGUAGE = 'pref.language';
 const KEY_THEME = 'pref.theme';
+const KEY_THEME_BG = 'pref.themeBg';
 
 export const usePreferenceStore = create<State>((set, get) => ({
   profile: {},
   language: 'zh',
   theme: 'system',
+  themeBg: undefined,
   saving: false,
   load: async () => {
-    const [p, l, t] = await Promise.all([
+    const [p, l, t, b] = await Promise.all([
       AsyncStorage.getItem(KEY_PROFILE),
       AsyncStorage.getItem(KEY_LANGUAGE),
       AsyncStorage.getItem(KEY_THEME),
+      AsyncStorage.getItem(KEY_THEME_BG),
     ]);
     set({
       profile: p ? JSON.parse(p) : {},
       language: (l as Language) || 'zh',
       theme: (t as ThemeMode) || 'system',
+      themeBg: b || undefined,
     });
   },
   setProfile: async (p) => {
@@ -51,5 +57,11 @@ export const usePreferenceStore = create<State>((set, get) => ({
     set({ saving: true });
     await AsyncStorage.setItem(KEY_THEME, t);
     set({ theme: t, saving: false });
+  },
+  setThemeBg: async (hex) => {
+    set({ saving: true });
+    if (hex) await AsyncStorage.setItem(KEY_THEME_BG, hex);
+    else await AsyncStorage.removeItem(KEY_THEME_BG);
+    set({ themeBg: hex, saving: false });
   },
 }));
