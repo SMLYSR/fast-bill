@@ -1,12 +1,16 @@
-import GridBackground from '@/components/GridBackground';
-import { Fonts } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, useWindowDimensions, View, Easing } from 'react-native';
-import CrossPressable from '@/components/CrossPressable';
-import { useRouter } from 'expo-router';
-import { useSupabaseAuthStore } from '@/store/useSupabaseAuthStore';
 
+import CrossPressable from '@/components/CrossPressable';
+import GridBackground from '@/components/GridBackground';
+import { useSupabaseAuthStore } from '@/store/useSupabaseAuthStore';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Fonts } from '../../constants/theme';
+
+const brandText = (isTablet: boolean) => ({ fontSize: isTablet ? 56 : 48, color: '#030213', lineHeight: isTablet ? 64 : 56, fontWeight: '500', letterSpacing: 1, fontFamily: Platform.select({ ios: Fonts.rounded, web: 'cursive', default: undefined }) } as const);
+const taglineText = (isTablet: boolean) => ({ fontSize: isTablet ? 18 : 16, color: '#717182', lineHeight: isTablet ? 26 : 24, fontWeight: '400' } as const);
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, loading, error } = useSupabaseAuthStore();
@@ -20,6 +24,7 @@ export default function LoginScreen() {
   const formTranslate = useRef(new Animated.Value(20)).current;
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768;
+  const insets = useSafeAreaInsets();
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -69,97 +74,96 @@ export default function LoginScreen() {
   const canLogin = email.length > 0 && password.length > 0 && agree && emailValid && passwordValid;
 
   return (
-    <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.wrap, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <GridBackground />
       <View style={styles.content}>
-      <Animated.View style={[styles.brand, { opacity: fade, marginBottom: 64 }]}> 
-        <View style={styles.titleRow}>
-          {title.map((ch, i) => (
-            <Animated.Text key={i} style={[styles.brandText(isTablet), styles.brandSpacer, i === title.length - 1 && styles.brandSpacerNone, { transform: [{ translateY: reduceMotion ? 0 : letters[i] }] }]}>{ch}</Animated.Text>
-          ))}
-          <Animated.View style={{ transform: [{ scale: reduceMotion ? 1 : iconScale }, { rotate: reduceMotion ? '0deg' : iconRotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-180deg'] }) }] }}>
-            <Ionicons name="pencil" size={40} color="#007AFF" style={styles.brandIcon} />
-          </Animated.View>
-        </View>
-      </Animated.View>
-      <Animated.View style={[styles.tagline, { opacity: taglineOpacity }]}> 
-        <Text style={styles.taglineText(isTablet)}>简洁记录，智慧理财</Text>
-      </Animated.View>
-      <Animated.View style={[styles.form, { opacity: formOpacity, transform: [{ translateY: reduceMotion ? 0 : formTranslate }] }]}> 
-        <View style={[styles.formCard, { width: Math.min(isTablet ? 448 : 384, width - 48) }]}> 
-        <View style={[styles.inputGroup, { width: '100%' }]}> 
-          <View style={styles.groupRow}> 
-            <Ionicons name="person-outline" size={20} color="#9CA3AF" />
-            <TextInput style={styles.input} placeholder="邮箱" placeholderTextColor="#9CA3AF" value={email} onChangeText={setEmail} autoComplete="email" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
+        <Animated.View style={[styles.brand, { opacity: fade, marginBottom: 64 }]}>
+          <View style={styles.titleRow}>
+            {title.map((ch, i) => (
+              <Animated.Text key={i} style={[brandText(isTablet), styles.brandSpacer, i === title.length - 1 && styles.brandSpacerNone, { transform: [{ translateY: reduceMotion ? 0 : letters[i] }] }]}>{ch}</Animated.Text>
+            ))}
+            <Animated.View style={{ transform: [{ scale: reduceMotion ? 1 : iconScale }, { rotate: reduceMotion ? '0deg' : iconRotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-180deg'] }) }] }}>
+              <Ionicons name="pencil" size={40} color="#007AFF" style={styles.brandIcon} />
+            </Animated.View>
           </View>
-          {emailErrorMsg ? (<Text style={styles.inputError}>{emailErrorMsg}</Text>) : null}
-          <View style={styles.divider} />
-          <View style={styles.groupRow}> 
-            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
-            <TextInput style={styles.input} placeholder="密码" placeholderTextColor="#9CA3AF" secureTextEntry value={password} onChangeText={setPassword} autoComplete="off" autoCapitalize="none" autoCorrect={false} />
+        </Animated.View>
+        <Animated.View style={[styles.tagline, { opacity: taglineOpacity }]}>
+          <Text style={taglineText(isTablet)}>简洁记录，智慧理财</Text>
+        </Animated.View>
+        <Animated.View style={[styles.form, { opacity: formOpacity, transform: [{ translateY: reduceMotion ? 0 : formTranslate }] }]}>
+          <View style={[styles.formCard, { width: Math.min(isTablet ? 448 : 384, width - 48) }]}>
+            <View style={[styles.inputGroup, { width: '100%' }]}>
+              <View style={styles.groupRow}>
+                <Ionicons name="person-outline" size={20} color="#9CA3AF" />
+                <TextInput style={styles.input} placeholder="邮箱" placeholderTextColor="#9CA3AF" value={email} onChangeText={setEmail} autoComplete="email" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
+              </View>
+              {emailErrorMsg ? (<Text style={styles.inputError}>{emailErrorMsg}</Text>) : null}
+              <View style={styles.divider} />
+              <View style={styles.groupRow}>
+                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
+                <TextInput style={styles.input} placeholder="密码" placeholderTextColor="#9CA3AF" secureTextEntry value={password} onChangeText={setPassword} autoComplete="off" autoCapitalize="none" autoCorrect={false} />
+              </View>
+              {passwordErrorMsg ? (<Text style={styles.inputError}>{passwordErrorMsg}</Text>) : null}
+            </View>
+            <CrossPressable style={[styles.loginBtn, { width: '100%' }, (!canLogin || loading) && styles.loginDisabled]} disabled={!canLogin || loading} onPress={async () => {
+              console.log('[ui/login] request', { email, password_len: password.length });
+              try {
+                const res = await signIn(email, password);
+                console.log('[ui/login] result', res);
+                if (res.ok) router.replace('/');
+                if (!res.ok) console.error('[ui/login] error', { message: res.error });
+              } catch (e: any) {
+                console.error('[ui/login] exception', { message: e?.message, stack: e?.stack });
+              }
+            }}>
+              <Text style={styles.loginText}>{loading ? '登录中...' : '登录'}</Text>
+            </CrossPressable>
+            {error ? (<View style={styles.orRow}><Text style={[styles.orText, { color: '#FF3B30' }]}>{error}</Text></View>) : null}
+            <View style={styles.orRow}>
+              <View style={styles.line} />
+              <Text style={styles.orText}>或</Text>
+              <View style={styles.line} />
+            </View>
+            <CrossPressable style={[agree ? styles.appleBtnActive : styles.appleBtn, { width: '100%' }]} disabled={!agree} onPress={() => { }}>
+              <Ionicons name="logo-apple" size={16} color="#fff" />
+              <Text style={styles.appleText}>使用 Apple ID 授权登录</Text>
+            </CrossPressable>
+            <View style={styles.agreeRow}>
+              <CrossPressable style={styles.checkbox} onPress={() => setAgree(v => !v)}>
+                {agree ? <View style={styles.checkboxDot} /> : null}
+              </CrossPressable>
+              <View style={styles.agreeTextWrap}>
+                <Text style={styles.agreeText}>我已阅读并同意 </Text>
+                <CrossPressable><Text style={styles.link}>用户协议</Text></CrossPressable>
+                <Text style={styles.agreeText}> 和 </Text>
+                <CrossPressable><Text style={styles.link}>隐私政策</Text></CrossPressable>
+              </View>
+            </View>
           </View>
-          {passwordErrorMsg ? (<Text style={styles.inputError}>{passwordErrorMsg}</Text>) : null}
-        </View>
-        <CrossPressable style={[styles.loginBtn, { width: '100%' }, (!canLogin || loading) && styles.loginDisabled]} disabled={!canLogin || loading} onPress={async () => {
-          console.log('[ui/login] request', { email, password_len: password.length });
-          try {
-            const res = await signIn(email, password);
-            console.log('[ui/login] result', res);
-            if (res.ok) router.replace('/');
-            if (!res.ok) console.error('[ui/login] error', { message: res.error });
-          } catch (e: any) {
-            console.error('[ui/login] exception', { message: e?.message, stack: e?.stack });
-          }
-        }}>
-          <Text style={styles.loginText}>{loading ? '登录中...' : '登录'}</Text>
-        </CrossPressable>
-        {error ? (<View style={styles.orRow}><Text style={[styles.orText, { color: '#FF3B30' }]}>{error}</Text></View>) : null}
-        <View style={styles.orRow}> 
-          <View style={styles.line} />
-          <Text style={styles.orText}>或</Text>
-          <View style={styles.line} />
-        </View>
-        <CrossPressable style={[agree ? styles.appleBtnActive : styles.appleBtn, { width: '100%' }]} disabled={!agree} onPress={() => {}}>
-          <Ionicons name="logo-apple" size={16} color="#fff" />
-          <Text style={styles.appleText}>使用 Apple ID 授权登录</Text>
-        </CrossPressable>
-        <View style={styles.agreeRow}>
-          <CrossPressable style={styles.checkbox} onPress={() => setAgree(v => !v)}>
-            {agree ? <View style={styles.checkboxDot} /> : null}
-          </CrossPressable>
-          <View style={styles.agreeTextWrap}>
-            <Text style={styles.agreeText}>我已阅读并同意 </Text>
-            <CrossPressable><Text style={styles.link}>用户协议</Text></CrossPressable>
-            <Text style={styles.agreeText}> 和 </Text>
-            <CrossPressable><Text style={styles.link}>隐私政策</Text></CrossPressable>
-          </View>
-        </View>
-        </View>
-        <View style={[styles.footerNote, { width: Math.min(isTablet ? 448 : 384, width - 48) }]}><Text style={styles.footerText}>登录即表示您同意我们的服务条款</Text></View>
-      </Animated.View>
+          <View style={[styles.footerNote, { width: Math.min(isTablet ? 448 : 384, width - 48) }]}><Text style={styles.footerText}>登录即表示您同意我们的服务条款</Text></View>
+        </Animated.View>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
+
+
 const styles = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: 24 },
   brand: { flexDirection: 'row', alignItems: 'center', width: 393, justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', columnGap: 8 },
-  brandText: (isTablet: boolean) => ({ fontSize: isTablet ? 56 : 48, color: '#030213', lineHeight: isTablet ? 64 : 56, fontWeight: '500', letterSpacing: 1, fontFamily: Platform.select({ ios: Fonts.rounded, web: 'cursive', default: undefined }) }),
   brandSpacer: { marginRight: 16 },
   brandSpacerNone: { marginRight: 0 },
   brandIcon: { marginLeft: 10 },
   tagline: { width: 393, alignItems: 'center' },
-  taglineText: (isTablet: boolean) => ({ fontSize: isTablet ? 18 : 16, color: '#717182', lineHeight: isTablet ? 26 : 24, fontWeight: '400' }),
   form: { marginTop: 32, width: 345, alignItems: 'center' },
   content: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  formCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 4, height: 4 }, alignItems: 'center' },
   formCard: { backgroundColor: 'transparent', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, shadowColor: '#000', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, alignItems: 'center' },
   inputGroup: { borderRadius: 16, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 4, height: 4 }, ...Platform.select({ web: { boxShadow: '4px 4px 12px rgba(0,0,0,0.08)' } }) },
   groupRow: { flexDirection: 'row', alignItems: 'center', columnGap: 12, width: '100%', height: 56, paddingHorizontal: 16 },
   divider: { height: 1, backgroundColor: '#E5E7EB' },
-  input: { flex: 1, color: '#0B0B0F', fontSize: 16, outlineColor: 'transparent', outlineWidth: 0, ...Platform.select({ web: { outlineStyle: 'none' } }) },
+  input: { flex: 1, color: '#0B0B0F', fontSize: 16, outlineColor: 'transparent', outlineWidth: 0, ...Platform.select({ web: { outlineStyle: 'none' as any } }) },
   loginBtn: { marginTop: 16, borderRadius: 16, width: 345, height: 56, backgroundColor: '#007AFF', alignItems: 'center', justifyContent: 'center', opacity: 1 },
   loginDisabled: { backgroundColor: '#999999', opacity: 0.4 },
   loginText: { color: '#fff', fontSize: 18, fontWeight: '500' },

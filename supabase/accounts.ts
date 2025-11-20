@@ -58,7 +58,7 @@ export async function listAccounts(limit = 100, offset = 0): Promise<Account[]> 
   const res = await withRetry(async () => sb().rpc('list_accounts', { limit_val: limit, offset_val: offset }));
   const err = (res as any).error;
   if (err && String(err.message).includes('Could not find the function')) {
-    const out = await sb().from('accounts').select('*').order('created_at', { descending: true }).range(offset, offset + limit - 1);
+    const out = await sb().from('accounts').select('*').order('created_at', { ascending: false }).range(offset, offset + limit - 1);
     if (out.error) throw new Error(out.error.message);
     return (out.data as Account[]) ?? [];
   }

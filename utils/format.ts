@@ -22,3 +22,10 @@ export function formatCNDateWithWeek(dateISO: string) {
   const week = weekMap[d.getDay()];
   return `${month}月${day}日(${week})`;
 }
+
+export function formatTime(dateISO: string) {
+  const d = new Date(dateISO);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}

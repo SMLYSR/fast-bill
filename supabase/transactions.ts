@@ -56,3 +56,21 @@ export async function listTransactionsByDate(dateISO: string): Promise<Transacti
 export async function listTransactionsBetween(startISO: string, endISO: string): Promise<Transaction[]> {
   return filterTransactions({ start_date: startISO, end_date: endISO }, 200, 0);
 }
+
+export async function getDailySummary(startISO: string, endISO: string): Promise<{ date: string; income_sum: number; expense_sum: number }[]> {
+  console.log('[client] daily_summary aggregation', { startISO, endISO });
+  const txs = await listTransactionsBetween(startISO, endISO);
+  const map = new Map<string, { date: string; income_sum: number; expense_sum: number }>();
+
+  txs.forEach(t => {
+    const d = t.date;
+    if (!map.has(d)) {
+      map.set(d, { date: d, income_sum: 0, expense_sum: 0 });
+    }
+    const entry = map.get(d)!;
+    if (t.type === 'income') entry.income_sum += t.amount;
+    else if (t.type === 'expense') entry.expense_sum += t.amount;
+  });
+
+  return Array.from(map.values());
+}

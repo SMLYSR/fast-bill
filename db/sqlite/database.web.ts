@@ -20,7 +20,7 @@ export async function upsertAccount(payload: Omit<Account, 'id' | 'created_at'> 
   const created_at = new Date().toISOString();
   const raw = await AsyncStorage.getItem('fatsbill_accounts');
   const arr: Account[] = raw ? JSON.parse(raw) : [];
-  const next = arr.filter(a => a.id !== id).concat([{ id, name: payload.name, balance: payload.balance ?? 0, icon: payload.icon ?? undefined, created_at }]);
+  const next = arr.filter(a => a.id !== id).concat([{ id, name: payload.name, balance: payload.balance ?? 0, icon: payload.icon ?? undefined, created_at, user_id: 'local' }]);
   await AsyncStorage.setItem('fatsbill_accounts', JSON.stringify(next));
   return id;
 }

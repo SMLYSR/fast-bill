@@ -42,12 +42,19 @@ export const useTransactionStore = create<State & Actions>((set, get) => ({
   },
   add: async t => {
     const tx = await createTransaction(t);
+    set(state => ({ transactions: [tx, ...state.transactions] }));
     return tx.id;
   },
   update: async (id, patch) => {
-    await updateTransaction(id, patch);
+    const tx = await updateTransaction(id, patch);
+    set(state => ({
+      transactions: state.transactions.map(t => (t.id === id ? tx : t)),
+    }));
   },
   remove: async id => {
     await deleteTransaction(id);
+    set(state => ({
+      transactions: state.transactions.filter(t => t.id !== id),
+    }));
   },
 }));

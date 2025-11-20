@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { Fonts } from '@/constants/theme';
 import FitText from '@/components/FitText';
+import { Fonts } from '@/constants/theme';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 export default function SummaryCard({ income, expense, titleLabel = '今日总收/支' }: { income: number; expense: number; titleLabel?: string }) {
   const net = income - expense;
@@ -12,17 +12,17 @@ export default function SummaryCard({ income, expense, titleLabel = '今日总�
         <Text style={styles.headerText}>{titleLabel}</Text>
       </View>
       <View style={styles.rows}>
-        <View style={styles.col}> 
+        <View style={styles.col}>
           <Text style={[styles.label, { color: '#FFB800' }]}>总收支</Text>
           <FitText text={`${net >= 0 ? '+' : ''}${net.toFixed(2)}\u00A0¥`} color={'#FFB800'} baseSize={18} weight={'600'} containerStyle={{ maxWidth: '90%' }} minScale={0.75} />
         </View>
         <View style={styles.divider} />
-        <View style={styles.col}> 
+        <View style={styles.col}>
           <Text style={[styles.label, { color: '#FF3B30' }]}>总支出</Text>
           <FitText text={`${expense.toFixed(2)}\u00A0¥`} color={'#FF3B30'} baseSize={18} weight={'600'} containerStyle={{ maxWidth: '90%' }} minScale={0.75} />
         </View>
         <View style={styles.divider} />
-        <View style={styles.col}> 
+        <View style={styles.col}>
           <Text style={[styles.label, { color: '#34C759' }]}>总收入</Text>
           <FitText text={`${income.toFixed(2)}\u00A0¥`} color={'#34C759'} baseSize={18} weight={'600'} containerStyle={{ maxWidth: '90%' }} minScale={0.75} />
         </View>

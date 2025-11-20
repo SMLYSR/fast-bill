@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useRef, useState } from 'react';
+import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import CrossPressable from './CrossPressable';
 
 export default function FABCapsule({ onAI, onManual }: { onAI: () => void; onManual: () => void }) {
@@ -13,15 +13,15 @@ export default function FABCapsule({ onAI, onManual }: { onAI: () => void; onMan
     if (open) {
       Animated.parallel([
         Animated.timing(fade, { toValue: 0, duration: 300, useNativeDriver: true }),
-         Animated.timing(tx1, { toValue: 12, duration: 300, useNativeDriver: true }),
-         Animated.timing(tx2, { toValue: 12, duration: 300, useNativeDriver: true }),
+        Animated.timing(tx1, { toValue: 12, duration: 300, useNativeDriver: true }),
+        Animated.timing(tx2, { toValue: 12, duration: 300, useNativeDriver: true }),
       ]).start(() => setOpen(false));
     } else {
       setOpen(true);
       Animated.parallel([
         Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }),
-         Animated.timing(tx1, { toValue: 0, duration: 300, useNativeDriver: true }),
-         Animated.timing(tx2, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(tx1, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(tx2, { toValue: 0, duration: 300, useNativeDriver: true }),
       ]).start();
     }
   }
@@ -36,13 +36,13 @@ export default function FABCapsule({ onAI, onManual }: { onAI: () => void; onMan
   return (
     <View style={styles.wrap}>
       {open && (
-        <Animated.View style={[styles.overlay, { opacity: fade }]}> 
+        <Animated.View style={[styles.overlay, { opacity: fade }]}>
           <CrossPressable style={styles.overlayPress} onPress={toggle} />
         </Animated.View>
       )}
-      <View style={styles.buttons}> 
+      <View style={styles.buttons}>
         {open && (
-          <Animated.View style={[styles.secondary, { transform: [{ translateY: tx1 }] }]}> 
+          <Animated.View style={[styles.secondary, { transform: [{ translateY: tx1 }] }]}>
             <CrossPressable style={styles.secondaryPress} onPress={handleAI}>
               <Ionicons name="camera-outline" size={18} color="#667085" />
               <Text style={styles.secondaryText}>AI记录</Text>
@@ -51,7 +51,7 @@ export default function FABCapsule({ onAI, onManual }: { onAI: () => void; onMan
           </Animated.View>
         )}
         {open && (
-          <Animated.View style={[styles.secondary, { transform: [{ translateY: tx2 }] }]}> 
+          <Animated.View style={[styles.secondary, { transform: [{ translateY: tx2 }] }]}>
             <CrossPressable style={styles.secondaryPress} onPress={handleManual}>
               <Ionicons name="pencil-outline" size={18} color="#667085" />
               <Text style={styles.secondaryText}>手动记账</Text>
@@ -59,7 +59,7 @@ export default function FABCapsule({ onAI, onManual }: { onAI: () => void; onMan
             </CrossPressable>
           </Animated.View>
         )}
-        <View> 
+        <View>
           <CrossPressable style={styles.main} onPress={toggle}>
             {open ? <Ionicons name="close" size={24} color="#fff" /> : <Ionicons name="add" size={24} color="#fff" />}
           </CrossPressable>

@@ -60,11 +60,7 @@ export default function AddTransactionForm({ onClose, initialValues }: Props) {
       <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="地点" />
       <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="备注" />
       <View style={styles.actions}>
-        {initialValues && (
-          <CrossPressable style={[styles.btnPrimary, styles.btnDelete]} onPress={onDelete}>
-            <Text style={styles.btnText}>删除</Text>
-          </CrossPressable>
-        )}
+
         <CrossPressable style={styles.btnPrimary} onPress={onSave}><Text style={styles.btnText}>保存</Text></CrossPressable>
       </View>
     </View>
