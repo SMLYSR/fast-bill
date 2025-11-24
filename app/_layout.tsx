@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import GridBackground from '@/components/GridBackground';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSupabaseAuthStore } from '@/store/useSupabaseAuthStore';
@@ -11,6 +12,22 @@ import { useEffect } from 'react';
 
 export const unstable_settings = {
   anchor: '(tabs)',
+};
+
+const TransparentTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: 'transparent',
+  },
+};
+
+const TransparentDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: 'transparent',
+  },
 };
 
 export default function RootLayout() {
@@ -35,8 +52,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
+      <ThemeProvider value={colorScheme === 'dark' ? TransparentDarkTheme : TransparentTheme}>
+        <GridBackground />
+        <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
           <Stack.Screen name="(modals)/add-transaction" options={{ presentation: 'modal', title: '记一笔' }} />

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import { getSupabase } from '@/lib/supabase';
+import { create } from 'zustand';
 
 type State = {
   session: any | null;
@@ -42,7 +42,21 @@ export const useSupabaseAuthStore = create<State & Actions>((set) => ({
           console.log('[auth/signIn] try signUp then login');
           const { data: sData, error: sError } = await client.auth.signUp({ email, password });
           console.log('[auth/signUp] response', { ok: !sError, hasSession: !!sData?.session, error: sError?.message });
-          if (sError) { set({ loading: false, error: sError.message }); return { ok: false, error: sError.message }; }
+          if (sError) {
+            // If user already registered, try to login again (could be old data or different device)
+            if (String(sError.message).includes('User already registered')) {
+              console.log('[auth/signUp] user exists, retrying login');
+              const { data: retryData, error: retryError } = await client.auth.signInWithPassword({ email, password });
+              if (retryError) {
+                set({ loading: false, error: retryError.message });
+                return { ok: false, error: retryError.message };
+              }
+              set({ session: retryData.session, user: retryData.session?.user ?? null, loading: false });
+              return { ok: true };
+            }
+            set({ loading: false, error: sError.message });
+            return { ok: false, error: sError.message };
+          }
           if (!sData?.session) {
             const notice = '注册成功，请查收验证邮件后再登录';
             set({ loading: false, error: notice });

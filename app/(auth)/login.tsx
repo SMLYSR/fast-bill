@@ -28,20 +28,20 @@ export default function LoginScreen() {
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
-    Animated.timing(fade, { toValue: 1, duration: 700, useNativeDriver: true }).start();
-    Animated.timing(taglineOpacity, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 700, useNativeDriver: Platform.OS !== 'web' }).start();
+    Animated.timing(taglineOpacity, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }).start();
     if (!reduceMotion) {
       Animated.sequence([
         Animated.delay(400),
         Animated.parallel([
-          Animated.timing(iconScale, { toValue: 1, duration: 600, useNativeDriver: true }),
-          Animated.timing(iconRotate, { toValue: 0, duration: 600, useNativeDriver: true }),
+          Animated.timing(iconScale, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(iconRotate, { toValue: 0, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
         ]),
       ]).start();
       const perChar = letters.map(val =>
         Animated.sequence([
-          Animated.timing(val, { toValue: -10, duration: 250, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-          Animated.timing(val, { toValue: 0, duration: 250, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(val, { toValue: -10, duration: 250, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(val, { toValue: 0, duration: 250, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
         ])
       );
       const group = Animated.stagger(100, perChar);
@@ -51,13 +51,13 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (reduceMotion) {
-      Animated.timing(formOpacity, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+      Animated.timing(formOpacity, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }).start();
     } else {
       Animated.sequence([
         Animated.delay(1200),
         Animated.parallel([
-          Animated.timing(formOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-          Animated.timing(formTranslate, { toValue: 0, duration: 600, useNativeDriver: true }),
+          Animated.timing(formOpacity, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(formTranslate, { toValue: 0, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
         ]),
       ]).start();
     }

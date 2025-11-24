@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import Svg, { Line, Rect } from 'react-native-svg';
 
 export default function GridBackground({ density = 30, lineWidth = 1, color = '#A8D8EA' }: { density?: number; lineWidth?: number; color?: string }) {
@@ -32,5 +32,5 @@ export default function GridBackground({ density = 30, lineWidth = 1, color = '#
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+  wrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#fff' },
 });

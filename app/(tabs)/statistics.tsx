@@ -13,10 +13,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Period = 'week' | 'month' | 'year';
 
+import { useIsFocused } from '@react-navigation/native';
+
 export default function StatisticsScreen() {
+  const isFocused = useIsFocused();
   const [period, setPeriod] = useState<Period>('week');
   const [kind, setKind] = useState<'income' | 'expense'>('expense');
-  const { transactions, loadBetween } = useTransactionStore();
+  const { statsTransactions, loadStats } = useTransactionStore();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const maxW = Math.min(393, width - 32);
@@ -28,10 +31,15 @@ export default function StatisticsScreen() {
     if (period === 'week') start.setDate(now.getDate() - 6);
     if (period === 'month') start.setMonth(now.getMonth());
     if (period === 'year') start.setFullYear(now.getFullYear());
-    loadBetween(formatDateISO(start), formatDateISO(now));
-  }, [period]);
+
+    if (isFocused) {
+      loadStats(formatDateISO(start), formatDateISO(now));
+    }
+  }, [period, isFocused]);
 
   // 统计图数据在组件内根据 period/kind 生成
+
+  if (!isFocused) return <View style={{ flex: 1 }} />;
 
   return (
     <View style={styles.container}>
@@ -43,8 +51,8 @@ export default function StatisticsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: 16 }}>
         {/* Add some top spacing since header is now separate */}
         <View style={{ height: 16 }} />
-        <CalendarCard maxW={maxW} routerPush={router.push} transactions={transactions} />
-        <LineChartCard maxW={maxW} period={period} setPeriod={setPeriod} kind={kind} setKind={setKind} transactions={transactions} />
+        <CalendarCard maxW={maxW} routerPush={router.push} transactions={statsTransactions} />
+        <LineChartCard maxW={maxW} period={period} setPeriod={setPeriod} kind={kind} setKind={setKind} transactions={statsTransactions} />
       </ScrollView>
     </View>
   );
@@ -66,7 +74,15 @@ function CalendarCard({ maxW, routerPush, transactions }: { maxW: number; router
     });
   }, [current]);
 
+  // Calculate leading empty cells for Sunday-start calendar
+  const firstDay = days[0];
+  const leadingEmptyCells = firstDay.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
   const circleSize = 30;
+  // Calculate precise cell width to avoid iOS rounding issues
+  // Subtract padding (24 * 2 = 48) from maxW to get available content width
+  const cellWidth = Math.floor((maxW - 48) / 7);
+
   return (
     <View style={[styles.card, { width: maxW, alignSelf: 'center' }]}>
       <View style={styles.cardHeader}>
@@ -80,16 +96,20 @@ function CalendarCard({ maxW, routerPush, transactions }: { maxW: number; router
       </View>
       <View style={styles.weekRow}>
         {['日', '一', '二', '三', '四', '五', '六'].map(w => (
-          <View key={w} style={styles.weekCell}><Text style={styles.weekText}>{w}</Text></View>
+          <View key={w} style={[styles.weekCell, { width: cellWidth }]}><Text style={styles.weekText}>{w}</Text></View>
         ))}
       </View>
       <View style={styles.grid}>
+        {/* Add leading empty cells */}
+        {Array.from({ length: leadingEmptyCells }).map((_, i) => (
+          <View key={`empty-${i}`} style={[styles.dayCell, { width: cellWidth }]} />
+        ))}
         {days.map(d => {
           const id = formatDateISO(d);
           const entry = summary[id];
           const display = getDayDisplay(id, transactions, entry);
           return (
-            <CrossPressable key={id} style={styles.dayCell} onPress={() => routerPush(`/history/${id}`)}>
+            <CrossPressable key={id} style={[styles.dayCell, { width: cellWidth }]} onPress={() => routerPush(`/history/${id}`)}>
               <View style={[styles.dayCircle, { width: circleSize, height: circleSize }]}>
                 <Text style={styles.dayNum}>{d.getDate()}</Text>
                 <Text style={[styles.dayValIn, { color: display.color }]}>{display.text}</Text>
@@ -104,25 +124,17 @@ function CalendarCard({ maxW, routerPush, transactions }: { maxW: number; router
 
 function LineChartCard({ maxW, period, setPeriod, kind, setKind, transactions }: { maxW: number; period: Period; setPeriod: (p: Period) => void; kind: 'income' | 'expense'; setKind: (k: 'income' | 'expense') => void; transactions: { type: 'income' | 'expense'; amount: number; date: string }[] }) {
   const chartColor = kind === 'income' ? '#34C759' : '#FF3B30';
-  const { data, labels } = buildSeriesWithLabels(period, kind, transactions);
+  const { data } = buildSeriesWithLabels(period, kind, transactions);
   const total = data.reduce((s, p) => s + p.value, 0);
   const values = data.map(d => d.value).filter(v => v > 0);
   const maxVal = values.length > 0 ? Math.max(...values) : 0;
+  const minVal = values.length > 0 ? Math.min(...values) : 0;
   const avg = data.length ? total / data.length : 0;
 
   // Chart dimensions
-  // To ensure labels are not cut off, we use initialSpacing and endSpacing inside the chart
-  // instead of just padding the container. This pushes the data points inward.
-  // We still need some container padding for the chart itself.
   const cardPadding = 24;
-  const chartContainerPadding = 12; // Reduced from 20 since we use spacing
-  const availableWidth = maxW - (cardPadding * 2) - (chartContainerPadding * 2);
-
-  // Spacing calculation
-  const initialSpacing = 20;
-  const endSpacing = 20;
-  const usableWidth = availableWidth - initialSpacing - endSpacing;
-  const spacing = data.length > 1 ? usableWidth / (data.length - 1) : usableWidth;
+  // The chart will take the full available width inside the card.
+  const availableWidth = maxW - (cardPadding * 2);
 
   // Y-Axis Scaling
   const { maxValue, noOfSections } = getYAxisScale(data);
@@ -156,7 +168,7 @@ function LineChartCard({ maxW, period, setPeriod, kind, setKind, transactions }:
       </View>
 
       {/* Chart */}
-      <View style={[styles.chartBox, { paddingHorizontal: chartContainerPadding }]}>
+      <View style={styles.chartBox}>
         <LineChart
           data={data}
           thickness={2}
@@ -174,58 +186,14 @@ function LineChartCard({ maxW, period, setPeriod, kind, setKind, transactions }:
           yAxisThickness={0}
           width={availableWidth}
           height={180}
-          initialSpacing={initialSpacing}
-          endSpacing={endSpacing}
-          spacing={spacing}
-          xAxisLabelTexts={labels}
-          // Removed fixed width: 40 to allow labels to take necessary space without truncation
-          // Added minWidth to ensure some consistency if needed, but usually auto is best for variable text
-          xAxisLabelTextStyle={{ color: '#999', fontSize: 10, textAlign: 'center' }}
           yAxisLabelWidth={0}
           maxValue={maxValue}
           noOfSections={noOfSections}
           isAnimated={true}
           animationDuration={600}
           disableScroll
-          // Interactive Tooltip Configuration
-          pointerConfig={{
-            pointerStripHeight: 160,
-            pointerStripColor: 'lightgray',
-            pointerStripWidth: 2,
-            pointerColor: 'lightgray',
-            radius: 6,
-            pointerLabelWidth: 100,
-            pointerLabelHeight: 90,
-            activatePointersOnLongPress: false, // Activate on tap
-            autoAdjustPointerLabelPosition: true,
-            pointerLabelComponent: (items: any) => {
-              const item = items[0];
-              return (
-                <View style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
-                  backgroundColor: 'white',
-                  borderRadius: 8,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                  marginLeft: -30, // Center adjustment
-                  marginTop: -10,
-                }}>
-                  <Text style={{ color: '#666', fontSize: 10, marginBottom: 2 }}>
-                    {item.dateLabel}
-                  </Text>
-                  <Text style={{ color: '#333', fontSize: 12, fontWeight: '600' }}>
-                    {item.value.toFixed(2)}
-                  </Text>
-                </View>
-              );
-            },
-          }}
+          adjustToWidth={true}
+          xAxisLabelTextStyle={{ color: '#999', fontSize: 10 }}
           // Average Value Reference Line (Dashed)
           showReferenceLine1
           referenceLine1Position={avg}
@@ -234,24 +202,40 @@ function LineChartCard({ maxW, period, setPeriod, kind, setKind, transactions }:
           showReferenceLine2
           referenceLine2Position={maxVal}
           referenceLine2Config={{ color: '#C7C7CC', dashWidth: 4, dashGap: 4, thickness: 1 }}
+          // Min Value Reference Line (Dashed)
+          showReferenceLine3
+          referenceLine3Position={minVal}
+          referenceLine3Config={{ color: '#C7C7CC', dashWidth: 4, dashGap: 4, thickness: 1 }}
         />
-        {/* Max Value Label (Top Right) */}
+        {/* Max Value Label (Left Side, aligned with reference line) */}
         {maxVal > 0 && (
           <Text style={{
             position: 'absolute',
-            right: chartContainerPadding,
-            top: 0,
-            color: '#666',
+            left: 0,
+            top: 180 * (1 - maxVal / maxValue) - 6,
+            color: '#999',
             fontSize: 10
           }}>
-            {maxVal.toFixed(2)}
+            最大值: {maxVal.toFixed(2)}
+          </Text>
+        )}
+        {/* Min Value Label (Left Side, aligned with reference line) */}
+        {minVal > 0 && minVal !== maxVal && (
+          <Text style={{
+            position: 'absolute',
+            left: 0,
+            top: 180 * (1 - minVal / maxValue) - 6,
+            color: '#999',
+            fontSize: 10
+          }}>
+            最小值: {minVal.toFixed(2)}
           </Text>
         )}
         {/* Average Value Label (Right Side, aligned with reference line) */}
         {avg > 0 && (
           <Text style={{
             position: 'absolute',
-            left: chartContainerPadding,
+            left: 0,
             top: 180 * (1 - avg / maxValue) - 6,
             color: '#999',
             fontSize: 10
@@ -268,6 +252,9 @@ function buildSeriesWithLabels(period: Period, kind: 'income' | 'expense', trans
   const now = new Date();
   const hasData = transactions && transactions.length > 0;
 
+  const labelStyle = { width: 60, marginLeft: -30, alignItems: 'center' as const };
+  const textStyle = { color: '#999', fontSize: 10 };
+
   if (period === 'week') {
     // Natural Week: Monday to Sunday
     const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
@@ -281,15 +268,19 @@ function buildSeriesWithLabels(period: Period, kind: 'income' | 'expense', trans
       return d;
     });
 
-    const labels = days.map((_, i) => ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][i]);
+    const dayLabels = ['一', '二', '三', '四', '五', '六', '日'];
     const values = days.map((d, i) => {
       const id = formatDateISO(d);
       const sum = hasData ? transactions.filter(t => t.type === kind && t.date === id).reduce((s, t) => s + t.amount, 0) : 0;
-      // Add dateLabel for tooltip
-      const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 ${labels[i]}`;
-      return { value: sum, dateLabel };
+      const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 周${dayLabels[i]}`;
+
+      return {
+        value: sum,
+        dateLabel,
+        label: dayLabels[i]
+      };
     });
-    return { data: values, labels };
+    return { data: values };
   }
 
   if (period === 'month') {
@@ -302,31 +293,35 @@ function buildSeriesWithLabels(period: Period, kind: 'income' | 'expense', trans
       const id = formatDateISO(d);
       const sum = hasData ? transactions.filter(t => t.type === kind && t.date === id).reduce((s, t) => s + t.amount, 0) : 0;
       const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日`;
-      return { value: sum, dateLabel };
-    });
 
-    // Smart Labels: "01", "05", "10"...
-    const labels = daysInMonth.map(d => {
       const date = d.getDate();
-      if (date === 1 || date % 5 === 0) {
-        return String(date).padStart(2, '0');
-      }
-      return ''; // Hide other labels
+      const showLabel = date === 1 || date % 5 === 0;
+
+      return {
+        value: sum,
+        dateLabel,
+        label: showLabel ? String(date).padStart(2, '0') : ''
+      };
     });
 
-    return { data: values, labels };
+    return { data: values };
   }
 
   // Year: Jan to Dec
-  const labels = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-  const values = labels.map((_, i) => {
-    const prefix = `${now.getFullYear()}-${String(i + 1).padStart(2, '0')}-`;
+  const monthLabels = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+  const values = monthLabels.map((label, i) => {
+    const prefix = `${now.getFullYear()}-${label}-`;
     const sum = hasData ? transactions.filter(t => t.type === kind && t.date.startsWith(prefix)).reduce((s, t) => s + t.amount, 0) : 0;
     const dateLabel = `${now.getFullYear()}年${i + 1}月`;
-    return { value: sum, dateLabel };
+
+    return {
+      value: sum,
+      dateLabel,
+      label: label
+    };
   });
 
-  return { data: values, labels };
+  return { data: values };
 }
 
 function getDayDisplay(id: string, transactions: { type: 'income' | 'expense'; amount: number; date: string }[], mockEntry?: { income: number; expense: number }) {
@@ -374,7 +369,7 @@ function getYAxisScale(data: { value: number }[]) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' }, // Removed paddingHorizontal from container to allow full-width header
+  container: { flex: 1 }, // Removed paddingHorizontal from container to allow full-width header
   headerContainer: {
     backgroundColor: '#fff',
     paddingBottom: 12, // Slightly reduced padding
@@ -400,13 +395,13 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   chevBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6' },
   monthText: { fontSize: 16, color: '#0B0B0F', fontWeight: '500' },
-  weekRow: { flexDirection: 'row', marginTop: 4 },
-  weekCell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 4 },
-  weekText: { color: '#6A7282', fontSize: 12 },
+  weekRow: { flexDirection: 'row', marginTop: 4, marginBottom: 4 },
+  weekCell: { alignItems: 'center', paddingVertical: 4 },
+  weekText: { color: '#6A7282', fontSize: 12, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCell: { width: `${100 / 7}%`, paddingVertical: 6, alignItems: 'center', gap: 4 },
+  dayCell: { paddingVertical: 6, alignItems: 'center' },
   dayCircle: { borderRadius: 14, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, ...Platform.select({ web: { boxShadow: '0 2px 6px rgba(0,0,0,0.06)' } }) },
-  dayNum: { color: '#1E2939', fontSize: 10 },
+  dayNum: { color: '#1E2939', fontSize: 10, marginTop: 2 },
   dayValIn: { fontSize: 10, marginTop: 2 },
   // Line chart card
   lineHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },

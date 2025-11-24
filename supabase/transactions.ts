@@ -49,8 +49,8 @@ export async function filterTransactions(filters: Partial<Pick<Transaction, 'typ
   return ((res as any).data as Transaction[]) ?? [];
 }
 
-export async function listTransactionsByDate(dateISO: string): Promise<Transaction[]> {
-  return filterTransactions({ date: dateISO }, 500, 0);
+export async function listTransactionsByDate(dateISO: string, limit = 10, offset = 0): Promise<Transaction[]> {
+  return filterTransactions({ date: dateISO }, limit, offset);
 }
 
 export async function listTransactionsBetween(startISO: string, endISO: string): Promise<Transaction[]> {

@@ -1,8 +1,11 @@
 import FitText from '@/components/FitText';
 import { Fonts } from '@/constants/theme';
+import { Transaction } from '@/db/sqlite/schema';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
-export default function SummaryCard({ income, expense, titleLabel = '今日总收/支' }: { income: number; expense: number; titleLabel?: string }) {
+export default function SummaryCard({ transactions, titleLabel = '今日总收/支' }: { transactions: Transaction[]; titleLabel?: string }) {
+  const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const net = income - expense;
   const total = income + expense;
   return (

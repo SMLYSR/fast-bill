@@ -9,22 +9,23 @@ import { formatCNDateWithWeek, formatDateISO, formatTime } from '@/utils/format'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, FlatList, Modal, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useIsFocused } from '@react-navigation/native';
+
 export default function HomeScreen() {
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const { transactions, loadByDate, loading } = useTransactionStore();
+  const { todayTransactions, loadToday, loadingToday, remove, loadMoreToday, hasMoreToday } = useTransactionStore();
   const todayISO = formatDateISO(new Date());
-  const data = transactions.map(t => ({ id: t.id, time: formatTime(t.created_at), category: t.category, type: t.type, amount: t.amount, icon: '📄', location: t.location, note: t.description, raw: t }));
+  const data = todayTransactions.map(t => ({ id: t.id, time: formatTime(t.created_at), category: t.category, type: t.type, amount: t.amount, icon: '📄', location: t.location, note: t.description, raw: t }));
   const [refreshing, setRefreshing] = useState(false);
   const [showTop, setShowTop] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const listRef = useRef<FlatList<any>>(null);
-  const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const [aiVisible, setAiVisible] = useState(false);
   const [manualVisible, setManualVisible] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
@@ -33,24 +34,32 @@ export default function HomeScreen() {
   const router = useRouter();
   const todayLabel = formatCNDateWithWeek(formatDateISO(new Date()));
 
-  useEffect(() => { loadByDate(todayISO); }, [todayISO]);
+  useEffect(() => {
+    if (isFocused) {
+      loadToday(todayISO);
+    }
+  }, [todayISO, isFocused]);
 
   const handleDelete = async () => {
     if (deletingId) {
-      await useTransactionStore.getState().remove(deletingId);
+      await remove(deletingId);
       setDeleteVisible(false);
       setDeletingId(null);
     }
   };
 
+  if (!isFocused) return <View style={{ flex: 1 }} />;
+
   return (
     <View style={styles.container}>
       <FlatList
         ref={listRef}
-        data={data}
-        keyExtractor={i => i.id}
+        data={todayTransactions}
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <Swipeable
+            overshootLeft={false}
+            overshootRight={false}
             renderLeftActions={(progress, dragX) => {
               const trans = dragX.interpolate({
                 inputRange: [0, 60],
@@ -63,7 +72,8 @@ export default function HomeScreen() {
                       style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
                       onPress={() => {
                         setEditingTransaction(item.raw);
-                        setManualVisible(true);
+                        // Use setTimeout to prevent ghost touch on high-refresh rate screens
+                        setTimeout(() => setManualVisible(true), 50);
                       }}
                     >
                       <Ionicons name="create-outline" size={24} color="#fff" />
@@ -84,7 +94,9 @@ export default function HomeScreen() {
                       style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
                       onPress={() => {
                         setDeletingId(item.id);
-                        setDeleteVisible(true);
+                        // Use setTimeout to prevent the touch event from propagating to the Modal overlay
+                        // which could cause it to close immediately on some iOS devices.
+                        setTimeout(() => setDeleteVisible(true), 50);
                       }}
                     >
                       <Ionicons name="trash-outline" size={24} color="#fff" />
@@ -102,7 +114,7 @@ export default function HomeScreen() {
         ListHeaderComponent={
           <View>
             <View style={[styles.headerPad, { paddingTop: insets.top + 12 }]}>
-              <SummaryCard income={income} expense={expense} />
+              <SummaryCard transactions={todayTransactions} />
             </View>
             <View style={styles.headingRow}>
               <Text style={styles.heading}>今日</Text>
@@ -113,10 +125,13 @@ export default function HomeScreen() {
             </View>
           </View>
         }
-        refreshControl={<RefreshControl refreshing={refreshing || loading} onRefresh={() => { setRefreshing(true); loadByDate(todayISO).then(() => setRefreshing(false)); }} />}
+        onEndReachedThreshold={0.2}
+        onEndReached={() => { if (!loadingToday && hasMoreToday) { loadMoreToday(); } }}
+        ListFooterComponent={loadingToday && todayTransactions.length > 0 ? <ActivityIndicator style={{ marginVertical: 12 }} /> : (!hasMoreToday && todayTransactions.length > 0 ? <Text style={{ textAlign: 'center', color: '#999', marginVertical: 12, fontSize: 12 }}>没有更多了</Text> : null)}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
-        onScroll={e => { const v = e.nativeEvent.contentOffset.y > 160; setShowTop(v); Animated.timing(fade, { toValue: v ? 1 : 0, duration: 300, useNativeDriver: true }).start(); }}
+        onScroll={e => { const v = e.nativeEvent.contentOffset.y > 160; setShowTop(v); Animated.timing(fade, { toValue: v ? 1 : 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }).start(); }}
         scrollEventThrottle={16}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={<Text style={{ textAlign: 'center', color: '#6A7282', marginTop: 16 }}>暂无今日流水</Text>}
       />
       <FABCapsule onAI={() => setAiVisible(true)} onManual={() => { setEditingTransaction(undefined); setManualVisible(true); }} />
@@ -179,7 +194,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1 },
   headingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
   headerPad: { paddingTop: 12 },
   heading: { fontSize: 24, color: '#101828' },
